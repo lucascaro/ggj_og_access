@@ -69,8 +69,6 @@ function ggj_og_access_menu_alter(&$menu) {
 
 /**
  * Removes access to edit read only nodes.
- * @param type $node
- * @return type
  */
 function ggj_og_access_menu_access_node_edit($node) {
   $readonly = ggj_og_access_get_types();
@@ -92,7 +90,9 @@ function ggj_og_access_menu_access_node_edit($node) {
   return node_access('update', $node);
 }
 
-
+/**
+ * Overrides node_access for selected types.
+ */
 function ggj_og_access_node_access_node_add($op, $node) {
   if (node_access($op, $node)) {
     return user_access('create ggj og readonly nodes');
@@ -102,6 +102,10 @@ function ggj_og_access_node_access_node_add($op, $node) {
 }
 
 // Utility functions
+/**
+ * Returns an array with the configured read only types.
+ * @return array
+ */
 function ggj_og_access_get_types() {
   static $types = NULL;
 

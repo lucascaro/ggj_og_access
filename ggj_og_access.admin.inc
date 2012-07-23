@@ -6,7 +6,9 @@
  * Defines settings forms and administrative actions.
  */
 
-
+/**
+ * Form constructor for ggj_og_access_settings_form
+ */
 function ggj_og_access_settings_form(&$form_state) {
   // Get all group post types.
   $node_types = og_get_types('group');
@@ -25,6 +27,9 @@ function ggj_og_access_settings_form(&$form_state) {
   return system_settings_form($form);
 }
 
+/**
+ * Form submit handler for ggj_og_access_settings_form.
+ */
 function ggj_og_access_settings_form_submit() {
   // Refresh all cached access control.
   node_access_needs_rebuild(TRUE);
