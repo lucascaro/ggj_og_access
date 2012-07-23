@@ -1,0 +1,113 @@
+<?php
+/**
+ * @file
+ * Custom Module for the Global Game Jam site that blocks access to game nodes,
+ * needed because og allows users to edit the games even after the jam is
+ * finished.
+ *
+ * @author Lucas Caro <lucas@triplesmart.com>
+ */
+
+/**
+ * Implementation of hook_perm().
+ */
+function ggj_og_access_perm() {
+  return array(
+    'create ggj og readonly nodes',
+    'edit ggj og readonly nodes',
+    'administer ggj og access',
+  );
+}
+
+function ggj_og_access_menu() {
+  $items['admin/og/ggj_acces'] = array(
+    'title' => 'Custom Access Control',
+    'description' => 'Configure custom access rules for og nodes.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ggj_og_access_settings_form'),
+    'file' => 'ggj_og_access.admin.inc',
+    'access arguments' => 'administer ggj og access',
+    'type' => MENU_NORMAL_ITEM,
+    'weight' => 50,
+  );
+
+  return $items;
+}
+
+/**
+ * Implementation of hook_og_access_grants().
+ * Remove access to read only nodes.
+ */
+function ggj_og_access_og_access_grants_alter(&$grants, $node) {
+  $readonly = ggj_og_access_get_types();
+  if (in_array($node->type, $readonly)) {
+    foreach ($grants as $g => $grant) {
+      // This node should be read only.
+      if ($grant['realm'] == 'og_admin' || $grant['realm'] == 'og_subscriber') {
+        // Group administrators get all operations.
+        $grants[$g]['grant_update'] = 0;
+        $grants[$g]['grant_delete'] = 0;
+      }
+    }
+  }
+}
+
+/**
+ * Implementation of hook_menu_alter().
+ */
+function ggj_og_access_menu_alter(&$menu) {
+  // If og_access is disabled, we at least add back the edit tab for group admins to edit their posts.
+  $menu['node/%node/edit']['access callback'] = 'ggj_og_access_menu_access_node_edit';
+  $menu['node/%node/edit']['access arguments'] = array(1);
+
+  // Replace access callback for all readonly node types.
+  $readonly = ggj_og_access_get_types();
+  foreach ($readonly as $type) {
+    $menu['node/add/'.$type]['access callback'] = 'ggj_og_access_node_access_node_add';
+  }
+}
+
+/**
+ * Removes access to edit read only nodes.
+ * @param type $node
+ * @return type
+ */
+function ggj_og_access_menu_access_node_edit($node) {
+  $readonly = ggj_og_access_get_types();
+  // Am I a group admin for this group post?
+  if (!module_exists('og_access') && isset($node->og_groups)) {
+    foreach ($node->og_groups as $gid) {
+      if (og_is_group_admin(node_load($gid))) {
+        return !in_array($node->type, $readonly);
+      }
+    }
+  }
+
+  // Am I group admin for this group node?
+  if (!module_exists('og_access') && og_is_group_admin($node)) {
+    return !in_array($node->type, $readonly);
+  }
+
+  // Since the group admin tests failed, check access as usual.
+  return node_access('update', $node);
+}
+
+
+function ggj_og_access_node_access_node_add($op, $node) {
+  if (node_access($op, $node)) {
+    return user_access('create ggj og readonly nodes');
+  }
+  
+  return FALSE;
+}
+
+// Utility functions
+function ggj_og_access_get_types() {
+  static $types = NULL;
+
+  if ($types === NULL) {
+    $types = array_filter(variable_get('ggj_og_access_types', array()));
+  }
+
+  return $types;
+}

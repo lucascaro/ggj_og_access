@@ -1,0 +1,8 @@
+name = GGJ OG Access
+description = Custom access control for og nodes for the Global Game Jam.
+core = 6.x
+package = Site Tweaks
+;php =
+;version =
+dependencies[] = og
+;files[] =
